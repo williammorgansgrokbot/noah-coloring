@@ -17,7 +17,7 @@ Everything happens in the phone's browser. There is no server and nothing is upl
 
 ## Phone notes
 - **iPhone photos (HEIC):** if a photo won't open, go to Settings › Camera › Formats › **Most Compatible**, then retake it (or use a screenshot / JPG). The game shows these steps if a photo can't be read.
-- Works on older iPads (iPadOS 13): all art is PNG/JPEG (no WebP) and the code avoids newer JavaScript.
+- Built for older iPads (iPadOS 13): all art is PNG/JPEG (no WebP) and the code avoids newer JavaScript and CSS. Not yet tried on a real iPad mini or iPhone — only in headless Chromium with synthetic photos.
 - If the game shows "Turn your phone sideways", there is a Class Art button right on that screen so you can add photos while holding the phone upright.
 - Private Browsing may not allow saving; the art then lasts only until the page is closed.
 
