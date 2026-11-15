@@ -1,16 +1,17 @@
 # Noah's Big Boat — Coloring Edition 🖍️
 
 **▶ Play (phone, iPad, or any browser):** https://williammorgansgrokbot.github.io/noah-coloring/
-**🖨️ Print the coloring pages (PDF):** https://williammorgansgrokbot.github.io/noah-coloring/pages/Coloring_pages.pdf
+**🖨️ Print the coloring pages (PDF, 11 pages):** https://williammorgansgrokbot.github.io/noah-coloring/pages/Coloring_pages.pdf
 
-Kids color two printable Noah's Ark pages. Take a photo of each colored page **inside the game** and the animals, Noah, the ark, the cloud, the rainbow, the rock and the puddle turn into stickers that appear in the game. The painted art comes back for anything you haven't added.
+Kids color printable Noah's Ark pages — **one big picture per page, 11 pages** (lion, elephant, giraffe, sheep, duck, Noah, the ark, cloud, rainbow, rock, puddle). Take a photo of each colored page **inside the game** and the drawing turns into a sticker that appears in the game. The painted art comes back for anything you haven't added, so you can do just a few pages.
 
-## How to use it
-1. **Print** the PDF at **100%** ("Actual size" — *not* "Fit to page"; the black corner squares must stay square and the right size). Two pages: Page 1 (lion, elephant, giraffe, sheep, duck, Noah) and Page 2 (ark, cloud, rainbow, rock, puddle).
-2. **Color** with bold crayons or markers. Stay inside the boxes if you can. Dark, bright colors work best; very pale pencil can fade.
-3. **Photo:** lay the page flat in good light (no big shadows). Keep **all 4 black corner squares** in the picture and fill the frame. Tilted or sideways is fine — the game straightens it and works out which page it is from the dots at the bottom (1 dot = Page 1, 2 dots = Page 2).
-4. Open the game → **🎨 Class Art** → **📷 Add colored page** → take a photo (or choose one from your library). Do both pages.
-5. Switch **Class art: ON / OFF** any time. **Redo** or **Clear** one picture, or **Clear all**.
+## How to use it (teacher / parent)
+1. **Print** the PDF at **100%** ("Actual size" — *not* "Fit to page"; the four black corner squares must stay the right size). Print all 11 pages, or only the ones you want (single-page PDFs are in `pages/individual/`). Each page has the picture's name at the top.
+2. **Color** with bold crayons or markers. Stay inside the big box if you can. Dark, bright colors work best; very pale pencil can fade.
+3. **Photo:** lay the page flat in good light (no big shadows). Keep **all 4 black corner squares** in the picture and fill the frame. Tilted or sideways is fine — the game straightens it and works out which picture it is from the little dot code at the bottom of the page.
+4. Open the game → **🎨 Class Art** → **📷 Add colored page** → take a photo, or pick one **or several** from your library at once. The game says what it saved ("✓ Saved: Lion, Giraffe").
+5. If the dot code can't be read (smudged or covered), the game shows the page and asks you to tap which picture it is — it never guesses.
+6. Switch **Class art: ON / OFF** any time. **Redo** or **Clear** one picture, or **Clear all**.
 
 ## Privacy
 Everything happens in the phone's browser. There is no server and nothing is uploaded — the photo is read on the device, the cut-outs are saved only in that browser (IndexedDB), and the game loads no outside fonts or scripts. Different phones/browsers keep their own art.
@@ -19,13 +20,16 @@ Everything happens in the phone's browser. There is no server and nothing is upl
 - **iPhone photos (HEIC):** if a photo won't open, go to Settings › Camera › Formats › **Most Compatible**, then retake it (or use a screenshot / JPG). The game shows these steps if a photo can't be read.
 - Built for older iPads (iPadOS 13): all art is PNG/JPEG (no WebP) and the code avoids newer JavaScript and CSS. Not yet tried on a real iPad mini or iPhone — only in headless Chromium with synthetic photos.
 - If the game shows "Turn your phone sideways", there is a Class Art button right on that screen so you can add photos while holding the phone upright.
+- Photos from an older version of the pages (two pictures per page) are not read by this version — reprint the 11-page PDF.
 - Private Browsing may not allow saving; the art then lasts only until the page is closed.
 
 ## For developers
 - `index.html` is the whole game (built; self-contained). Source in `src/`; rebuild with `python3 src/build.py`.
-- `src/classart.js` is the on-device photo pipeline: find the four black squares → 8-point homography (perspective straightening) → page-ID dots → per-box cut with local lighting flattening and paper flood-fill → PNG data-URL in IndexedDB. Pure canvas, no libraries.
-- `src/layout.json` holds the box positions (points on a US-Letter page); `pages/` has the page images used for tests.
-- Tests: `python3 test/simulate.py OUTDIR` makes fake colored/warped/dim/rotated "photos"; `python3 test/run_tests.py PHOTO_DIR SHOT_DIR` runs headless Chromium (Playwright) end-to-end.
+- `src/classart.js` is the on-device photo pipeline: find the four black squares (any rotation) → 8-point homography (perspective straightening) → try the page orientations and read the **page-ID code** → page-wide paper-light flattening → paper flood-fill cut of the big box → 512px PNG data-URL in IndexedDB (`noahcolor_art`). Pure canvas, no libraries.
+- **Page-ID code** (bottom of each page): black anchor bar, 5 slots, black anchor bar. Slots 1–4 are the picture number 1–11 in binary (filled dot = 1, empty = 0), slot 5 is an even-parity bit. Both anchors must be solid and parity must check out, otherwise the game asks instead of guessing. Upside-down photos fail the check in the wrong orientation, which is how orientation is decided.
+- Pages are generated by `python3 tools/make_pages.py` (Playwright/Chromium → `pages/Coloring_pages.pdf`, `pages/individual/*.pdf`, `pages/png/*.png`, and `src/layout.json`). Line art sources are in `tools/lineart/`.
+- Tests: `python3 test/simulate.py OUTDIR` makes fake colored/warped/dim/rotated "photos" of all 11 pages; `python3 test/run_tests.py PHOTO_DIR SHOT_DIR` runs headless Chromium (Playwright) end-to-end.
+- The duck is drawn facing right (like the other animals); in-game sprites face right at `f:1`, and the duck's `f` flag follows its direction of travel.
 - Debug: `?kids=0` forces the painted art.
 
 Scripture quotations are from the New International Reader's Version® (NIrV®), Copyright © 1995, 1996, 1998, 2014 by Biblica, Inc.® Used by permission. All rights reserved worldwide.

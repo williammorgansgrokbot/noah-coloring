@@ -322,8 +322,8 @@ makeTitle=function(o){const f=_makeTitle(Object.assign({},o,{draw(t){o.draw(t);i
 
 // ===================== CLASS ART: phone photo of a colored page -> game sprites (all on THIS device) =====================
 // No server, no uploads. Pure canvas. Saved in this browser's IndexedDB only.
-const CA_PAGES=[{"lion":[66,95,230,210],"elephant":[316,95,230,210],"giraffe":[66,325,230,210],"sheep":[316,325,230,210],"duck":[66,555,230,210],"noah":[316,555,230,210]},{"ark":[66,95,230,210],"cloud":[316,95,230,210],"rainbow":[66,325,230,210],"rock":[316,325,230,210],"puddle":[66,555,230,210]}];
-const CA_W=612,CA_H=792,CA_C=39,CA_INSET=9,CA_SC=3,CA_OUT=400,CA_MAXPX=2000;
+const CA_PAGES=[{"lion":[66,108,480,578]},{"elephant":[66,108,480,578]},{"giraffe":[66,108,480,578]},{"sheep":[66,108,480,578]},{"duck":[66,108,480,578]},{"noah":[66,108,480,578]},{"ark":[66,108,480,578]},{"cloud":[66,108,480,578]},{"rainbow":[66,108,480,578]},{"rock":[66,108,480,578]},{"puddle":[66,108,480,578]}];
+const CA_W=612,CA_H=792,CA_C=39,CA_INSET=9,CA_SC=2,CA_OUT=512,CA_MAXPX=2000;
 const CA_PAGEPTS=[[CA_C,CA_C],[CA_W-CA_C,CA_C],[CA_W-CA_C,CA_H-CA_C],[CA_C,CA_H-CA_C]];// TL TR BR BL centres of the black squares
 const CA_NAMES={lion:'Lion',elephant:'Elephant',giraffe:'Giraffe',sheep:'Sheep',duck:'Duck',noah:'Noah',ark:'The Ark',cloud:'Cloud',rainbow:'Rainbow',rock:'Rock',puddle:'Puddle'};
 const CA={art:{},store:true,pending:null,busy:false};
@@ -389,18 +389,19 @@ function caWarp(img,H,x0,y0,w,h,sc){const ow=Math.round(w*sc),oh=Math.round(h*sc
   const ux=u|0,vy=v|0,fx=u-ux,fy=v-vy,p=(vy*W+ux)*4,q=p+W*4,a=(1-fx)*(1-fy),b=fx*(1-fy),c=(1-fx)*fy,e=fx*fy;
   out[o]=S[p]*a+S[p+4]*b+S[q]*c+S[q+4]*e;out[o+1]=S[p+1]*a+S[p+5]*b+S[q+1]*c+S[q+5]*e;out[o+2]=S[p+2]*a+S[p+6]*b+S[q+2]*c+S[q+6]*e;out[o+3]=255}
  return{data:out,width:ow,height:oh}}
-// ---------- which page? count the page-ID dots (1 dot = page 1, 2 dots = page 2) ----------
-function caDots(img,P){const sc=4,R=caWarp(img,caHomog(CA_PAGEPTS,P),276,771,60,20,sc),w=R.width,h=R.height,d=R.data,g=new Float32Array(w*h),vals=[];
- for(let i=0;i<w*h;i++){if(d[i*4+3]){g[i]=d[i*4]*.3+d[i*4+1]*.59+d[i*4+2]*.11;vals.push(g[i])}else g[i]=-1}
- if(vals.length<w*h*.9)return -1;vals.sort((a,b)=>a-b);const ref=vals[Math.floor(vals.length*.9)],thr=ref*.55;if(ref<60)return -1;
- const lab=new Int32Array(w*h),st=[];let id=0,count=0;
- for(let i=0;i<w*h;i++){if(g[i]>=thr||lab[i])continue;id++;st.length=0;st.push(i);lab[i]=id;let area=0,x0=w,x1=0,y0=h,y1=0;
-  while(st.length){const p=st.pop(),x=p%w,y=(p/w)|0;area++;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
-   if(x>0&&!lab[p-1]&&g[p-1]<thr){lab[p-1]=id;st.push(p-1)}if(x<w-1&&!lab[p+1]&&g[p+1]<thr){lab[p+1]=id;st.push(p+1)}if(y>0&&!lab[p-w]&&g[p-w]<thr){lab[p-w]=id;st.push(p-w)}if(y<h-1&&!lab[p+w]&&g[p+w]<thr){lab[p+w]=id;st.push(p+w)}}
-  const bw=x1-x0+1,bh=y1-y0+1;if(x0===0||y0===0||x1===w-1||y1===h-1)continue;if(area<25*sc*sc||area>160*sc*sc)continue;if(area/(bw*bh)<.5||bw/bh<.6||bw/bh>1.6)continue;count++}
- return count}
-// pick orientation + page from the dots. returns {P,page} or {P,page:0} (ambiguous -> ask)
-function caPickPage(cands,img){let hit=[];cands.forEach(P=>{const n=caDots(img,P);if(n===1||n===2)hit.push({P,page:n})});
+// ---------- which picture? read the page-ID code printed at the bottom ----------
+// two black anchor bars with 5 slots between them: 4 id bits (filled dot = 1) + an even-parity bit. ids 1..11 = lion..puddle
+const CA_CODE={y:757,slots:[262,284,306,328,350],anch:[236,376]};
+function caReadId(img,P){const sc=4,x0=215,y0=740,rw=182,rh=34,R=caWarp(img,caHomog(CA_PAGEPTS,P),x0,y0,rw,rh,sc),w=R.width,h=R.height,d=R.data,g=new Float32Array(w*h),vals=[];
+ for(let i=0;i<w*h;i++){if(!d[i*4+3])return 0;g[i]=d[i*4]*.3+d[i*4+1]*.59+d[i*4+2]*.11;vals.push(g[i])}
+ vals.sort((a,b)=>a-b);const ref=vals[Math.floor(vals.length*.9)];if(ref<60)return 0;const thr=ref*.55;
+ const frac=(cx,cy,rx,ry,circ)=>{let n=0,k=0;for(let y=Math.floor((cy-ry-y0)*sc);y<=Math.ceil((cy+ry-y0)*sc);y++)for(let x=Math.floor((cx-rx-x0)*sc);x<=Math.ceil((cx+rx-x0)*sc);x++){if(x<0||y<0||x>=w||y>=h)continue;
+   if(circ){const dx=(x/sc+x0-cx)/rx,dy=(y/sc+y0-cy)/ry;if(dx*dx+dy*dy>1)continue}n++;if(g[y*w+x]<thr)k++}return n?k/n:0};
+ for(const ax of CA_CODE.anch)if(frac(ax,CA_CODE.y,2.5,8,false)<.8)return 0;
+ const bits=[];for(const sx of CA_CODE.slots){const f=frac(sx,CA_CODE.y,3.5,3.5,true);if(f>.75)bits.push(1);else if(f<.15)bits.push(0);else return 0}
+ if((bits[0]+bits[1]+bits[2]+bits[3]+bits[4])%2)return 0;const id=bits[0]*8+bits[1]*4+bits[2]*2+bits[3];return id>=1&&id<=KID_ITEMS.length?id:0}
+// pick orientation + picture from the code. returns {P,page} or {P,page:0} (unreadable -> ask)
+function caPickPage(cands,img){const hit=[];cands.forEach(P=>{const n=caReadId(img,P);if(n)hit.push({P,page:n})});
  if(hit.length===1)return hit[0];return{P:cands[0],page:0}}
 // ---------- lighting: estimate the paper brightness over the whole page, divide it out ----------
 function caLight(pg){const w=pg.width,h=pg.height,d=pg.data,G=12,gw=Math.ceil(w/G),gh=Math.ceil(h/G),ref=new Float32Array(gw*gh),has=[];
@@ -451,10 +452,10 @@ async function caHandle(file,only,say){
  say('Checking which page this is\u2026');await caTick();const pk=caPickPage(cands,img);
  if(!pk.page){CA.pending={img,cands,ci:0,only};return{ask:true}}
  return caFinish(img,pk.P,pk.page,only,say)}
-async function caFinish(img,P,page,only,say){
- if(only&&caPageOf(only)!==page)throw caErr('wrongpage','That photo is Page '+page+', but the '+CA_NAMES[only]+' is on Page '+caPageOf(only)+'. Take a photo of Page '+caPageOf(only)+' instead.');
- say('Cutting out the drawings (page '+page+')\u2026');const res=await caCutPage(img,P,page,only);
- if(!Object.keys(res).length)throw caErr('empty','I found the page but couldn\u2019t cut out any drawings. Try again with better light.');
+async function caFinish(img,P,page,only,say){const item=KID_ITEMS[page-1];
+ if(only&&only!==item)throw caErr('wrongpage','That photo is the '+CA_NAMES[item]+' page, but you are redoing the '+CA_NAMES[only]+'. Take a photo of the '+CA_NAMES[only]+' page instead.');
+ say('Cutting out the '+CA_NAMES[item]+'\u2026');const res=await caCutPage(img,P,page,only);
+ if(!Object.keys(res).length)throw caErr('empty','I found the page but couldn\u2019t cut out the drawing. Try again with better light.');
  const r=await caSave(res,page);r.page=page;return r}
 // ---------- the Class Art panel ----------
 const caEl=id=>document.getElementById(id);
@@ -463,38 +464,41 @@ function caBusy(b){CA.busy=b;const p=caEl('ca');if(p)p.classList.toggle('busy',b
 function caTile(k){const a=CA.art[k],pg=caPageOf(k),orig=ORIG[k];
  const img=a?'<img src="'+a.url+'" alt="">':orig&&orig.src?'<img class="orig" src="'+orig.src+'" alt="">':'<div class="none">only shows with class art</div>';
  const st=a?(a.colored===false?'Saved \u2022 little color seen':'Class art \u2713'):(orig?'Painted art':'Not added');
- return '<div class="catile'+(a?' has':'')+'"><div class="cath">'+img+'</div><b>'+CA_NAMES[k]+'</b><small>Page '+pg+' \u2022 '+st+'</small><div class="cabtns"><label class="cabtn sm">'+(a?'\u21BB Redo':'+ Add')+'<input type="file" accept="image/*" data-only="'+k+'" hidden></label>'+(a?'<button class="cabtn sm ghost" data-act="del" data-k="'+k+'">Clear</button>':'')+'</div></div>'}
+ return '<div class="catile'+(a?' has':'')+'"><div class="cath">'+img+'</div><b>'+CA_NAMES[k]+'</b><small>Page '+pg+' of 11 \u2022 '+st+'</small><div class="cabtns"><label class="cabtn sm">'+(a?'\u21BB Redo':'+ Add')+'<input type="file" accept="image/*" data-only="'+k+'" hidden></label>'+(a?'<button class="cabtn sm ghost" data-act="del" data-k="'+k+'">Clear</button>':'')+'</div></div>'}
 function caRender(){const any=KID_ITEMS.some(k=>CA.art[k]);
  caEl('caGrid').innerHTML=KID_ITEMS.map(caTile).join('');
  const t=caEl('caTog');t.textContent='Class art: '+(KIDS_ON?'ON':'OFF');t.className='cabtn tog'+(KIDS_ON?' on':'');t.style.display=any?'':'none';
  caEl('caClr').style.display=any?'':'none';caEl('caClr').textContent='Clear all';caEl('caClr').dataset.sure='';
  caEl('caNoStore').style.display=CA.store?'none':'block'}
 function caPickRender(){const p=CA.pending,box=caEl('caPick');if(!p){box.innerHTML='';return}
- box.innerHTML='<div class="capick"><b>I couldn\u2019t read the page dots. Which page is this?</b><div class="capcv"></div><div class="cabtns"><button class="cabtn" data-act="pg" data-p="1">This is Page 1</button><button class="cabtn" data-act="pg" data-p="2">This is Page 2</button><button class="cabtn ghost" data-act="flip">\u21BB Picture upside down? Flip it</button><button class="cabtn ghost" data-act="cancel">Cancel</button></div></div>';
+ box.innerHTML='<div class="capick"><b>I couldn\u2019t read the page code. Which picture is this page?</b><div class="capcv"></div><div class="cabtns pk">'+KID_ITEMS.map((k,i)=>'<button class="cabtn sm" data-act="pg" data-p="'+(i+1)+'">'+CA_NAMES[k]+'</button>').join('')+'</div><div class="cabtns"><button class="cabtn sm ghost" data-act="flip">\u21BB Picture upside down? Flip it</button><button class="cabtn sm ghost" data-act="cancel">Cancel</button></div></div>';
  const c=caThumb(p.img,p.cands[p.ci]);box.querySelector('.capcv').appendChild(c)}
-async function caRun(file,only){if(CA.busy)return;caBusy(true);CA.pending=null;caPickRender();caSay('Working on it\u2026 (this takes a few seconds)');
- try{const r=await caHandle(file,only,caSay);
-  if(r.ask){caSay('');caPickRender();}
-  else caDoneMsg(r)}catch(e){caSay(e&&e.caCode?e.message:'Something went wrong reading that photo ('+(e&&e.message||e)+'). Please try another photo.','bad')}
- caBusy(false);caRender()}
-function caDoneMsg(r){const nm=r.names.map(k=>CA_NAMES[k]).join(', ');caSay('\u2713 Saved from Page '+r.page+': '+nm+'.'+(r.saveOk?'':' (This browser wouldn\u2019t save them for later \u2014 they work until you close this page. Private Browsing can cause that.)'),r.saveOk?'good':'bad')}
-async function caPicked(page){const p=CA.pending;if(!p)return;caBusy(true);CA.pending=null;caPickRender();
- try{const r=await caFinish(p.img,p.cands[p.ci],page,p.only,caSay);caDoneMsg(r)}catch(e){caSay(e&&e.caCode?e.message:'Something went wrong ('+(e&&e.message||e)+').','bad')}
- caBusy(false);caRender()}
+function caErrText(e){return e&&e.caCode?e.message:'Something went wrong reading that photo ('+(e&&e.message||e)+'). Please try another photo.'}
+function caSummary(log,bad){let t='';if(log.length)t+='\u2713 Saved: '+log.join(', ')+'.';if(!CA.store&&log.length)t+=' (This browser wouldn\u2019t save them for later \u2014 they work until you close this page. Private Browsing can cause that.)';if(bad.length)t+=(t?'\n':'')+bad.join('\n');return{t,cls:bad.length?'bad':'good'}}
+async function caRunFiles(files,only,log,bad){if(CA.busy)return;caBusy(true);CA.pending=null;caPickRender();log=log||[];bad=bad||[];
+ for(let i=0;i<files.length;i++){const tag=files.length>1?'Photo '+(i+1)+' of '+files.length+': ':'';
+  try{caSay(tag+'Working on it\u2026 (a few seconds)');const r=await caHandle(files[i],only,t=>caSay(tag+t));
+   if(r.ask){CA.pending.rest=files.slice(i+1);CA.pending.log=log;CA.pending.bad=bad;const s=caSummary(log,bad);caSay(s.t,s.cls);caPickRender();caBusy(false);caRender();return}
+   log.push(r.names.map(k=>CA_NAMES[k]).join(', '))}catch(e){bad.push(tag+caErrText(e))}}
+ const s=caSummary(log,bad);caSay(s.t,s.cls);caBusy(false);caRender()}
+async function caPicked(page){const p=CA.pending;if(!p)return;caBusy(true);CA.pending=null;caPickRender();const log=p.log||[],bad=p.bad||[];
+ try{const r=await caFinish(p.img,p.cands[p.ci],page,p.only,caSay);log.push(r.names.map(k=>CA_NAMES[k]).join(', '))}catch(e){bad.push(caErrText(e))}
+ caBusy(false);if(p.rest&&p.rest.length){caRunFiles(p.rest,null,log,bad);return}
+ const s=caSummary(log,bad);caSay(s.t,s.cls);caRender()}
 function caOpen(){caSay('');CA.pending=null;caPickRender();caRender();caEl('ca').classList.add('on')}
 function caClose(){caEl('ca').classList.remove('on');CA.pending=null;if(G.scene&&G.scene.name==='title')go(TitleScene)}
 (function(){
  const d=document.createElement('div');d.id='ca';
  d.innerHTML='<div class="capanel"><button class="caclose" data-act="close" aria-label="Close">&times;</button><div class="kick">Noah\u2019s Big Boat \u2022 Coloring Edition</div><h2>\uD83C\uDFA8 Class Art</h2>'
  +'<p class="canote"><b>Everything stays on this device.</b> The photo is read right here in your browser \u2014 nothing is uploaded or sent anywhere. Your drawings are saved only in this browser.</p>'
- +'<div class="cabtns main"><label class="cabtn big">\uD83D\uDCF7 Add colored page<input type="file" accept="image/*" id="caFile" hidden></label><a class="cabtn" href="pages/Coloring_pages.pdf" target="_blank" rel="noopener">\uD83D\uDDA8\uFE0F Print the coloring pages (PDF)</a><button class="cabtn tog" id="caTog" data-act="tog">Class art: ON</button></div>'
- +'<ol class="catips"><li>Print the PDF at <b>100%</b> (not \u201Cfit to page\u201D). Color with bold crayons or markers.</li><li>Lay the page flat in good light. Keep <b>all 4 black corner squares</b> in the photo.</li><li>Tap <b>Add colored page</b>, then take a photo (or pick one). Do Page 1 and Page 2.</li></ol>'
+ +'<div class="cabtns main"><label class="cabtn big">\uD83D\uDCF7 Add colored page<input type="file" accept="image/*" id="caFile" multiple hidden></label><a class="cabtn" href="pages/Coloring_pages.pdf" target="_blank" rel="noopener">\uD83D\uDDA8\uFE0F Print the coloring pages (PDF)</a><button class="cabtn tog" id="caTog" data-act="tog">Class art: ON</button></div>'
+ +'<ol class="catips"><li>Print the PDF (11 pages, one big picture each) at <b>100%</b>, not \u201Cfit to page\u201D. Color with bold crayons or markers.</li><li>Lay a page flat in good light. Keep <b>all 4 black corner squares</b> in the photo.</li><li>Tap <b>Add colored page</b> and take a photo (or pick several from your library). The game knows which picture it is. Repeat for each page you colored.</li></ol>'
  +'<div id="caMsg" class="camsg"></div><div id="caPick"></div><div id="caNoStore" class="camsg bad" style="display:none">This browser can\u2019t save class art for later (Private Browsing?). It will work until you close the page.</div>'
  +'<div id="caGrid" class="cagrid"></div><div class="cabtns foot"><button class="cabtn ghost" id="caClr" data-act="clr">Clear all</button><button class="cabtn big" data-act="close">Done</button></div>'
  +'<div class="caspin"><div>Working\u2026</div></div></div>';
  document.body.appendChild(d);
  ['touchstart','touchmove','touchend','touchcancel','mousedown','mousemove','mouseup'].forEach(e=>d.addEventListener(e,ev=>ev.stopPropagation(),{passive:true}));
- d.addEventListener('change',ev=>{const i=ev.target;if(!i||i.type!=='file')return;const f=i.files&&i.files[0];const only=i.getAttribute('data-only')||null;i.value='';if(f)caRun(f,only)});
+ d.addEventListener('change',ev=>{const i=ev.target;if(!i||i.type!=='file')return;const fl=i.files?Array.prototype.slice.call(i.files):[];const only=i.getAttribute('data-only')||null;i.value='';if(fl.length)caRunFiles(fl,only)});
  d.addEventListener('click',async ev=>{const b=ev.target.closest?ev.target.closest('[data-act]'):null;if(!b)return;const a=b.getAttribute('data-act');
   if(a==='close')caClose();
   else if(a==='tog'){kidsApply(!KIDS_ON);caRender()}
