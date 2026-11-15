@@ -1,0 +1,11 @@
+import os, json
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+sh=open('shell.html').read(); eng=open('engine.js').read()
+layout=json.dumps(json.load(open('layout.json'))['pages'],separators=(',',':'))
+ca=open('classart.js').read().replace('/*LAYOUT*/',layout)
+game=open('kids.js').read()+'\n'+ca+'\n'+open('noah.js').read()
+h=(sh.replace('/*TITLE*/',"Noah's Big Boat \u2014 Coloring Edition")
+     .replace('/*ENGINE*/',"const GAME_ID='noahcolor';\n"+eng)
+     .replace('/*GAME*/',game)
+     .replace('/*ASSETS*/',open('assets_noah.json').read()))
+open('../index.html','w').write(h); print(len(h))
